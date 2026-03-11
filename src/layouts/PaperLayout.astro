@@ -8,12 +8,16 @@ interface Heading {
 interface Props {
   title?: string;
   author?: string;
+  posted?: string;
+  lastUpdated?: string;
   headings?: Heading[];
 }
 
 const {
   title = 'Would You Marry Superintelligence?',
   author = 'Inyoung Cheong',
+  posted,
+  lastUpdated,
   headings = [],
 } = Astro.props;
 
@@ -428,6 +432,18 @@ const tocHeadings = headings.filter((h) => h.depth <= 3);
             {title}
           </h1>
           <p class="ui-font text-sm mb-4" style="color: var(--text-muted);">{author}</p>
+          {(posted || lastUpdated) && (
+            <p class="ui-font text-xs mb-4" style="color: var(--text-muted);">
+              {posted === lastUpdated
+                ? <>Posted {posted || lastUpdated}</>
+                : <>
+                    {posted && <>Originally posted {posted}</>}
+                    {posted && lastUpdated && ' · '}
+                    {lastUpdated && <>Last updated {lastUpdated}</>}
+                  </>
+              }
+            </p>
+          )}
           <a
             href="/would-you-marry/marry.pdf"
             target="_blank"

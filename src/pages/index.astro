@@ -5,6 +5,6 @@ import Paper, { frontmatter, getHeadings } from '../paper.mdx';
 const headings = getHeadings();
 ---
 
-<PaperLayout title={frontmatter.title} author={frontmatter.author} headings={headings}>
+<PaperLayout title={frontmatter.title} author={frontmatter.author} posted={frontmatter.posted} lastUpdated={frontmatter.lastUpdated} headings={headings}>
   <Paper />
 </PaperLayout>
