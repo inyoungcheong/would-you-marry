@@ -29,54 +29,88 @@ const tocHeadings = headings.filter((h) => h.depth <= 3);
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=Inter:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
     <style>
+      :root {
+        --bg: #f0eee9;
+        --accent: #ee6d8a;
+        --accent-mid: #ffa266;
+        --border: #ddd6ce;
+        --text: #1c1c1c;
+        --text-muted: #8a8076;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        overflow-x: clip;
+      }
       body {
-        font-family: 'Lora', Georgia, 'Times New Roman', serif;
+        font-family: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+        background-color: var(--bg);
       }
       .ui-font {
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       }
 
-      /* Footnote styling */
+      /* Footnote section */
       .prose .footnotes {
-        border-top: 1px solid #e5e7eb;
+        border-top: 1px solid var(--border);
         margin-top: 3rem;
         padding-top: 1.5rem;
       }
       .prose .footnotes h2 {
-        font-size: 0.875rem;
+        font-size: 0.8rem;
         font-weight: 600;
         text-transform: uppercase;
-        letter-spacing: 0.05em;
-        color: #6b7280;
+        letter-spacing: 0.06em;
+        color: var(--text-muted);
         margin-bottom: 1rem;
         margin-top: 0;
+        font-family: 'Inter', sans-serif;
       }
       .prose .footnotes ol {
-        font-size: 0.875rem;
-        color: #4b5563;
-        line-height: 1.6;
+        font-size: 0.84rem;
+        color: #4b4540;
+        line-height: 1.65;
       }
       .prose .footnotes li {
         margin-bottom: 0.5rem;
       }
+
+      /* Footnote ref superscript */
       .prose a[data-footnote-ref] {
-        font-size: 0.7rem;
+        font-size: 0.68rem;
         vertical-align: super;
         text-decoration: none;
-        font-weight: 600;
-        color: #2563eb;
+        font-weight: 700;
+        color: var(--accent);
         font-family: 'Inter', sans-serif;
+        cursor: pointer;
       }
       .prose a[data-footnote-backref] {
         text-decoration: none;
         margin-left: 0.25rem;
+        color: var(--accent-mid);
       }
 
-      /* Heading anchor links */
+      /* Prose links */
+      .prose a:not([data-footnote-ref]):not([data-footnote-backref]) {
+        color: var(--accent);
+        text-decoration: underline;
+        text-decoration-color: rgba(238, 109, 138, 0.35);
+      }
+      .prose a:not([data-footnote-ref]):not([data-footnote-backref]):hover {
+        text-decoration-color: var(--accent);
+      }
+
+      /* Heading anchor links — no underline, no blue */
       .prose h2 > a,
       .prose h3 > a {
         color: inherit;
@@ -85,50 +119,161 @@ const tocHeadings = headings.filter((h) => h.depth <= 3);
       .prose h2 > a:hover::after,
       .prose h3 > a:hover::after {
         content: ' ¶';
-        color: #9ca3af;
+        color: #c4bdb4;
         font-weight: 400;
       }
 
-      /* TOC */
+      /* Desktop TOC */
       .toc-link {
         font-family: 'Inter', sans-serif;
-        color: #9ca3af;
+        color: #b0a89e;
         transition: color 0.15s;
         line-height: 1.4;
+        text-decoration: none;
       }
       .toc-link:hover {
-        color: #374151;
+        color: #4a3f38;
       }
       .toc-link.active {
-        color: #111827;
+        color: var(--text);
         font-weight: 500;
       }
 
+      /* Table overflow on mobile */
+      .prose table {
+        display: block;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        max-width: 100%;
+      }
+
+      /* Selection color */
       ::selection {
-        background: #bfdbfe;
+        background: rgba(238, 109, 138, 0.22);
+      }
+
+      /* ─── Footnote tooltip ─────────────────────────────────────── */
+      .fn-tooltip {
+        position: fixed;
+        z-index: 300;
+        background: #fffaf7;
+        border: 1px solid #e8e0d8;
+        border-left: 3px solid var(--accent);
+        border-radius: 6px;
+        padding: 0.7rem 0.9rem;
+        max-width: min(340px, calc(100vw - 2rem));
+        font-size: 0.81rem;
+        line-height: 1.65;
+        color: #3a3530;
+        box-shadow: 0 4px 18px rgba(0, 0, 0, 0.11);
+        font-family: 'Inter', sans-serif;
+        opacity: 1;
+        transition: opacity 0.12s;
+        pointer-events: none;
+      }
+      .fn-tooltip.hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      /* ─── Mobile TOC drawer ───────────────────────────────────── */
+      #mobile-toc-drawer {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 200;
+      }
+      #mobile-toc-drawer.open {
+        display: block;
+      }
+      #mobile-toc-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.3);
+      }
+      #mobile-toc-panel {
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: min(270px, 82vw);
+        background: var(--bg);
+        padding: 1.5rem 1.25rem;
+        overflow-y: auto;
+        box-shadow: 4px 0 24px rgba(0, 0, 0, 0.14);
+      }
+      .mobile-toc-link {
+        font-family: 'Inter', sans-serif;
+        color: #5a504a;
+        text-decoration: none;
+        display: block;
+        font-size: 0.875rem;
+        padding: 0.2rem 0;
+        line-height: 1.45;
+      }
+      .mobile-toc-link:hover {
+        color: var(--accent);
       }
     </style>
   </head>
 
-  <body class="bg-white text-gray-900 antialiased">
-    <!-- Top bar -->
+  <body class="antialiased" style="color: #1c1c1c;">
+    <!-- ─── Top bar ─────────────────────────────────────────────── -->
     <header
-      class="ui-font sticky top-0 z-50 border-b border-gray-100 bg-white/95 backdrop-blur-sm"
+      class="ui-font sticky top-0 z-50"
+      style="border-bottom: 1px solid var(--border); background-color: rgba(240,238,233,0.94); backdrop-filter: blur(8px);"
     >
-      <div class="max-w-6xl mx-auto px-6 h-11 flex items-center">
-        <span class="text-sm text-gray-400 truncate">{title}</span>
+      <div class="max-w-5xl mx-auto px-4 sm:px-6 h-11 flex items-center gap-3">
+        <!-- Hamburger — mobile only -->
+        <button
+          id="toc-toggle"
+          class="lg:hidden shrink-0 flex flex-col justify-center gap-[5px] p-1 -ml-1"
+          aria-label="Table of contents"
+        >
+          <span class="block w-[18px] h-[2px]" style="background:#aaa3a0;"></span>
+          <span class="block w-[18px] h-[2px]" style="background:#aaa3a0;"></span>
+          <span class="block w-[18px] h-[2px]" style="background:#aaa3a0;"></span>
+        </button>
+        <span class="text-sm truncate" style="color: var(--text-muted);">{title}</span>
       </div>
     </header>
 
-    <!-- Page body -->
+    <!-- ─── Mobile TOC drawer ──────────────────────────────────── -->
+    <div id="mobile-toc-drawer" role="dialog" aria-modal="true" aria-label="Table of contents">
+      <div id="mobile-toc-overlay"></div>
+      <div id="mobile-toc-panel">
+        <p
+          class="ui-font text-xs font-semibold uppercase tracking-widest mb-4"
+          style="color: var(--text-muted);"
+        >
+          Contents
+        </p>
+        <ul class="space-y-1">
+          {
+            tocHeadings.map((h) => (
+              <li class={h.depth === 3 ? 'pl-3' : ''}>
+                <a href={`#${h.slug}`} class="mobile-toc-link">
+                  {h.text}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+    </div>
+
+    <!-- ─── Page body ──────────────────────────────────────────── -->
     <div
-      class="max-w-6xl mx-auto px-4 sm:px-6 py-10 lg:grid lg:gap-12"
-      style="grid-template-columns: 210px 1fr;"
+      class="max-w-5xl mx-auto px-4 sm:px-6 py-10 lg:grid lg:gap-12"
+      style="grid-template-columns: 200px 1fr;"
     >
-      <!-- TOC sidebar -->
+      <!-- TOC sidebar — desktop -->
       <aside class="hidden lg:block">
         <nav id="toc" class="sticky top-20 max-h-[calc(100vh-6rem)] overflow-y-auto pr-2">
-          <p class="ui-font text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4">
+          <p
+            class="ui-font text-xs font-semibold uppercase tracking-widest mb-4"
+            style="color: var(--text-muted);"
+          >
             Contents
           </p>
           <ul class="space-y-1.5">
@@ -137,7 +282,7 @@ const tocHeadings = headings.filter((h) => h.depth <= 3);
                 <li class={h.depth === 3 ? 'pl-3' : ''}>
                   <a
                     href={`#${h.slug}`}
-                    class={`toc-link block text-xs py-0.5 leading-snug`}
+                    class="toc-link block text-xs py-0.5 leading-snug"
                     data-slug={h.slug}
                   >
                     {h.text}
@@ -150,24 +295,22 @@ const tocHeadings = headings.filter((h) => h.depth <= 3);
       </aside>
 
       <!-- Article -->
-      <article class="min-w-0 max-w-[700px]">
-        <!-- Article header -->
-        <header class="mb-10 pb-8 border-b border-gray-100">
-          <h1 class="text-3xl font-bold text-gray-900 leading-tight mb-3">
+      <article class="min-w-0">
+        <header class="mb-10 pb-8" style="border-bottom: 1px solid var(--border);">
+          <h1 class="text-3xl font-bold leading-tight mb-3" style="color: var(--text);">
             {title}
           </h1>
-          <p class="ui-font text-sm text-gray-500">{author}</p>
+          <p class="ui-font text-sm" style="color: var(--text-muted);">{author}</p>
         </header>
 
-        <!-- Article body -->
-        <div class="prose prose-lg">
+        <div class="prose prose-lg max-w-none">
           <slot />
         </div>
       </article>
     </div>
 
-    <!-- Scroll-spy script -->
     <script>
+      // ─── Scroll-spy ─────────────────────────────────────────────
       const headings = document.querySelectorAll('article h2[id], article h3[id]');
       const tocLinks = document.querySelectorAll<HTMLAnchorElement>('#toc .toc-link');
 
@@ -188,6 +331,86 @@ const tocHeadings = headings.filter((h) => h.depth <= 3);
         );
         headings.forEach((h) => observer.observe(h));
       }
+
+      // ─── Mobile TOC drawer ───────────────────────────────────────
+      const drawer = document.getElementById('mobile-toc-drawer')!;
+      const overlay = document.getElementById('mobile-toc-overlay')!;
+      const toggle = document.getElementById('toc-toggle')!;
+
+      toggle.addEventListener('click', () => drawer.classList.toggle('open'));
+      overlay.addEventListener('click', () => drawer.classList.remove('open'));
+      drawer.querySelectorAll('.mobile-toc-link').forEach((link) => {
+        link.addEventListener('click', () => drawer.classList.remove('open'));
+      });
+
+      // ─── Footnote tooltips ───────────────────────────────────────
+      const fnTooltip = document.createElement('div');
+      fnTooltip.className = 'fn-tooltip hidden';
+      document.body.appendChild(fnTooltip);
+
+      let hideTimer: ReturnType<typeof setTimeout>;
+
+      function getFootnoteText(href: string): string {
+        const id = href.replace(/^#/, '');
+        const li = document.getElementById(id);
+        if (!li) return '';
+        const clone = li.cloneNode(true) as HTMLElement;
+        clone.querySelector('a[data-footnote-backref]')?.remove();
+        return clone.textContent?.trim() ?? '';
+      }
+
+      function positionTooltip(ref: HTMLElement) {
+        const rect = ref.getBoundingClientRect();
+        const tipW = Math.min(340, window.innerWidth - 32);
+        let left = rect.left;
+        if (left + tipW > window.innerWidth - 16) left = window.innerWidth - tipW - 16;
+        if (left < 16) left = 16;
+        fnTooltip.style.left = left + 'px';
+        fnTooltip.style.top = rect.bottom + 8 + 'px';
+        fnTooltip.style.maxWidth = tipW + 'px';
+      }
+
+      function showTooltip(ref: HTMLElement, text: string) {
+        clearTimeout(hideTimer);
+        fnTooltip.textContent = text;
+        fnTooltip.classList.remove('hidden');
+        positionTooltip(ref);
+      }
+
+      function hideTooltip() {
+        fnTooltip.classList.add('hidden');
+      }
+
+      const isTouch = () => window.matchMedia('(hover: none)').matches;
+
+      document.querySelectorAll<HTMLAnchorElement>('a[data-footnote-ref]').forEach((ref) => {
+        const href = ref.getAttribute('href') ?? '';
+        const text = getFootnoteText(href);
+        if (!text) return;
+
+        // Desktop hover
+        ref.addEventListener('mouseenter', () => showTooltip(ref, text));
+        ref.addEventListener('mouseleave', () => {
+          hideTimer = setTimeout(hideTooltip, 250);
+        });
+
+        // Touch: click toggles
+        ref.addEventListener('click', (e) => {
+          if (!isTouch()) return;
+          if (fnTooltip.classList.contains('hidden')) {
+            e.preventDefault();
+            showTooltip(ref, text);
+          } else {
+            hideTooltip();
+          }
+        });
+      });
+
+      document.addEventListener('click', (e) => {
+        if (!(e.target as HTMLElement).closest('a[data-footnote-ref]')) {
+          hideTooltip();
+        }
+      });
     </script>
   </body>
 </html>

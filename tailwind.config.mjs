@@ -8,7 +8,7 @@ export default {
           css: {
             '--tw-prose-body': '#1c1c1c',
             '--tw-prose-headings': '#111827',
-            '--tw-prose-links': '#1d4ed8',
+            '--tw-prose-links': '#ee6d8a',
             '--tw-prose-bold': '#111827',
             '--tw-prose-quotes': '#374151',
             '--tw-prose-quote-borders': '#d1d5db',
