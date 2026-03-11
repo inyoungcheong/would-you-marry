@@ -1,0 +1,10 @@
+---
+import PaperLayout from '../layouts/PaperLayout.astro';
+import Paper, { frontmatter, getHeadings } from '../paper.mdx';
+
+const headings = getHeadings();
+---
+
+<PaperLayout title={frontmatter.title} author={frontmatter.author} headings={headings}>
+  <Paper />
+</PaperLayout>
