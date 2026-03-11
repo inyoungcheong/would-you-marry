@@ -6,6 +6,8 @@ import rehypeSlug from 'rehype-slug';
 import rehypeAutolinkHeadings from 'rehype-autolink-headings';
 
 export default defineConfig({
+  site: 'https://inyoungcheong.github.io',
+  base: '/would-you-marry',
   integrations: [
     tailwind(),
     mdx({
