@@ -44,7 +44,7 @@ const tocHeadings = headings.filter((h) => h.depth <= 3);
       href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=Inter:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <style>
+    <style is:global>
       :root {
         --bg: #ffffff;
         --accent: #ee6d8a;
@@ -503,19 +503,32 @@ const tocHeadings = headings.filter((h) => h.depth <= 3);
 
       let hideTimer: ReturnType<typeof setTimeout>;
 
-      function getFootnoteText(href: string): string {
-        const rawId = href.replace(/^#/, '');
-        // remark-gfm may use "user-content-fn-N" or just "fn-N"
-        const li =
-          document.getElementById(rawId) ||
-          document.getElementById('user-content-' + rawId) ||
-          document.querySelector<HTMLElement>(`li[id$="-${rawId.replace(/^.*fn-/, 'fn-')}"]`);
-        if (!li) return '';
+      // Build a map of all footnote texts keyed by every plausible fragment form
+      const fnTextMap = new Map<string, string>();
+      document.querySelectorAll<HTMLElement>('li[id]').forEach((li) => {
+        const id = li.id;
+        if (!id.includes('fn')) return; // only footnote list items
         const clone = li.cloneNode(true) as HTMLElement;
-        clone.querySelectorAll('a[data-footnote-backref], a[href*="fnref"]').forEach((el) =>
+        clone.querySelectorAll('[data-footnote-backref], a[href*="fnref"]').forEach((el) =>
           el.remove()
         );
-        return clone.textContent?.trim() ?? '';
+        const text = clone.textContent?.trim() ?? '';
+        if (!text) return;
+        // Store under original id, without user-content- prefix, and just the number
+        fnTextMap.set(id, text);
+        fnTextMap.set(id.replace(/^user-content-/, ''), text);
+        const num = id.match(/\d+$/)?.[0];
+        if (num) fnTextMap.set(num, text);
+      });
+
+      function getFootnoteText(href: string): string {
+        const frag = href.replace(/^#/, '');
+        if (fnTextMap.has(frag)) return fnTextMap.get(frag)!;
+        const stripped = frag.replace(/^user-content-/, '');
+        if (fnTextMap.has(stripped)) return fnTextMap.get(stripped)!;
+        const num = frag.match(/\d+$/)?.[0];
+        if (num && fnTextMap.has(num)) return fnTextMap.get(num)!;
+        return '';
       }
 
       function positionTooltip(ref: HTMLElement) {
@@ -542,13 +555,14 @@ const tocHeadings = headings.filter((h) => h.depth <= 3);
 
       const isTouch = () => window.matchMedia('(hover: none)').matches;
 
-      // Match both data-footnote-ref and plain sup > a[href*="fn-"]
+      // Match footnote ref anchors — cast wide net
       const fnRefs = document.querySelectorAll<HTMLElement>(
-        'a[data-footnote-ref], sup > a[href*="fn-"]'
+        'sup a, a[data-footnote-ref]'
       );
 
       fnRefs.forEach((ref) => {
         const href = ref.getAttribute('href') ?? '';
+        if (!href.includes('fn')) return;
         const text = getFootnoteText(href);
         if (!text) return;
 
@@ -558,9 +572,8 @@ const tocHeadings = headings.filter((h) => h.depth <= 3);
           hideTimer = setTimeout(hideTooltip, 300);
         });
 
-        // Touch: tap toggles
+        // Touch / mobile: tap toggles (prevent jumping to footnote)
         ref.addEventListener('click', (e) => {
-          if (!isTouch()) return;
           e.preventDefault();
           if (fnTooltip.classList.contains('hidden')) {
             showTooltip(ref, text);
@@ -572,7 +585,7 @@ const tocHeadings = headings.filter((h) => h.depth <= 3);
 
       document.addEventListener('click', (e) => {
         const t = e.target as HTMLElement;
-        if (!t.closest('a[data-footnote-ref]') && !t.closest('sup > a[href*="fn-"]')) {
+        if (!t.closest('sup a') && !t.closest('a[data-footnote-ref]')) {
           hideTooltip();
         }
       });
