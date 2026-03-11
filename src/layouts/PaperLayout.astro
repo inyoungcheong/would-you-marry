@@ -427,7 +427,17 @@ const tocHeadings = headings.filter((h) => h.depth <= 3);
           <h1 class="text-3xl font-bold leading-tight mb-3" style="color: var(--text);">
             {title}
           </h1>
-          <p class="ui-font text-sm" style="color: var(--text-muted);">{author}</p>
+          <p class="ui-font text-sm mb-4" style="color: var(--text-muted);">{author}</p>
+          <a
+            href="/marry.pdf"
+            target="_blank"
+            rel="noopener"
+            class="ui-font inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md"
+            style="background: var(--accent); color: #fff; text-decoration: none;"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
+            View PDF
+          </a>
         </header>
 
         <div class="prose prose-lg max-w-none">
