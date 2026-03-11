@@ -26,6 +26,18 @@ const tocHeadings = headings.filter((h) => h.depth <= 3);
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{title}</title>
+    <script is:inline>
+      // Apply theme before paint to avoid flash
+      (function() {
+        var saved = localStorage.getItem('theme');
+        var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (saved === 'dark' || (!saved && prefersDark)) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.add('light');
+        }
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -34,12 +46,47 @@ const tocHeadings = headings.filter((h) => h.depth <= 3);
     />
     <style>
       :root {
-        --bg: #f0eee9;
+        --bg: #ffffff;
         --accent: #ee6d8a;
         --accent-mid: #ffa266;
-        --border: #ddd6ce;
+        --border: #e5e7eb;
         --text: #1c1c1c;
-        --text-muted: #8a8076;
+        --text-muted: #6b7280;
+        --header-bg: rgba(255,255,255,0.95);
+        --footnote-text: #4b5563;
+        --tooltip-bg: #fff;
+        --tooltip-border: #e5e7eb;
+        --tooltip-text: #374151;
+      }
+
+      html.dark {
+        --bg: #18181b;
+        --accent: #f08fa6;
+        --accent-mid: #ffb380;
+        --border: #2e2e35;
+        --text: #e4e4e7;
+        --text-muted: #9ca3af;
+        --header-bg: rgba(24,24,27,0.95);
+        --footnote-text: #a1a1aa;
+        --tooltip-bg: #27272a;
+        --tooltip-border: #3f3f46;
+        --tooltip-text: #e4e4e7;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        html:not(.light) {
+          --bg: #18181b;
+          --accent: #f08fa6;
+          --accent-mid: #ffb380;
+          --border: #2e2e35;
+          --text: #e4e4e7;
+          --text-muted: #9ca3af;
+          --header-bg: rgba(24,24,27,0.95);
+          --footnote-text: #a1a1aa;
+          --tooltip-bg: #27272a;
+          --tooltip-border: #3f3f46;
+          --tooltip-text: #e4e4e7;
+        }
       }
 
       *,
@@ -48,7 +95,9 @@ const tocHeadings = headings.filter((h) => h.depth <= 3);
         box-sizing: border-box;
       }
 
-      html {
+      html,
+      body {
+        max-width: 100vw;
         overflow-x: clip;
       }
       body {
@@ -77,7 +126,7 @@ const tocHeadings = headings.filter((h) => h.depth <= 3);
       }
       .prose .footnotes ol {
         font-size: 0.84rem;
-        color: #4b4540;
+        color: var(--footnote-text);
         line-height: 1.65;
       }
       .prose .footnotes li {
@@ -85,7 +134,8 @@ const tocHeadings = headings.filter((h) => h.depth <= 3);
       }
 
       /* Footnote ref superscript */
-      .prose a[data-footnote-ref] {
+      .prose a[data-footnote-ref],
+      .prose sup > a[href*='fn-'] {
         font-size: 0.68rem;
         vertical-align: super;
         text-decoration: none;
@@ -101,42 +151,51 @@ const tocHeadings = headings.filter((h) => h.depth <= 3);
       }
 
       /* Prose links */
-      .prose a:not([data-footnote-ref]):not([data-footnote-backref]) {
+      .prose a:not([data-footnote-ref]):not([data-footnote-backref]):not(h2 > a):not(h3 > a) {
         color: var(--accent);
         text-decoration: underline;
         text-decoration-color: rgba(238, 109, 138, 0.35);
       }
-      .prose a:not([data-footnote-ref]):not([data-footnote-backref]):hover {
+      .prose
+        a:not([data-footnote-ref]):not([data-footnote-backref]):not(h2 > a):not(h3 > a):hover {
         text-decoration-color: var(--accent);
       }
 
-      /* Heading anchor links — no underline, no blue */
+      /* Heading anchor links — override all prose link styles */
       .prose h2 > a,
       .prose h3 > a {
-        color: inherit;
-        text-decoration: none;
+        color: inherit !important;
+        text-decoration: none !important;
+        font-weight: inherit !important;
       }
       .prose h2 > a:hover::after,
       .prose h3 > a:hover::after {
         content: ' ¶';
-        color: #c4bdb4;
+        color: var(--border);
         font-weight: 400;
       }
 
       /* Desktop TOC */
       .toc-link {
         font-family: 'Inter', sans-serif;
-        color: #b0a89e;
+        color: var(--text-muted);
         transition: color 0.15s;
         line-height: 1.4;
         text-decoration: none;
+        display: block;
+        padding-left: 8px;
+        border-left: 2px solid transparent;
+        transition:
+          color 0.15s,
+          border-color 0.15s;
       }
       .toc-link:hover {
-        color: #4a3f38;
+        color: var(--text);
       }
       .toc-link.active {
-        color: var(--text);
-        font-weight: 500;
+        color: var(--accent);
+        font-weight: 600;
+        border-left-color: var(--accent);
       }
 
       /* Table overflow on mobile */
@@ -147,25 +206,43 @@ const tocHeadings = headings.filter((h) => h.depth <= 3);
         max-width: 100%;
       }
 
+      /* Prevent any child from blowing out mobile width */
+      article {
+        min-width: 0;
+        overflow-x: hidden;
+      }
+
       /* Selection color */
       ::selection {
-        background: rgba(238, 109, 138, 0.22);
+        background: rgba(238, 109, 138, 0.2);
+      }
+
+      /* ─── Reading progress bar ──────────────────────────────────── */
+      #reading-progress {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        height: 2px;
+        width: 0%;
+        background: var(--accent);
+        transition: width 0.07s linear;
+        z-index: 10;
       }
 
       /* ─── Footnote tooltip ─────────────────────────────────────── */
       .fn-tooltip {
         position: fixed;
         z-index: 300;
-        background: #fffaf7;
-        border: 1px solid #e8e0d8;
+        background: var(--tooltip-bg);
+        border: 1px solid var(--tooltip-border);
         border-left: 3px solid var(--accent);
         border-radius: 6px;
         padding: 0.7rem 0.9rem;
         max-width: min(340px, calc(100vw - 2rem));
         font-size: 0.81rem;
         line-height: 1.65;
-        color: #3a3530;
-        box-shadow: 0 4px 18px rgba(0, 0, 0, 0.11);
+        color: var(--tooltip-text);
+        box-shadow: 0 4px 18px rgba(0, 0, 0, 0.18);
         font-family: 'Inter', sans-serif;
         opacity: 1;
         transition: opacity 0.12s;
@@ -200,11 +277,11 @@ const tocHeadings = headings.filter((h) => h.depth <= 3);
         background: var(--bg);
         padding: 1.5rem 1.25rem;
         overflow-y: auto;
-        box-shadow: 4px 0 24px rgba(0, 0, 0, 0.14);
+        box-shadow: 4px 0 24px rgba(0, 0, 0, 0.12);
       }
       .mobile-toc-link {
         font-family: 'Inter', sans-serif;
-        color: #5a504a;
+        color: var(--text-muted);
         text-decoration: none;
         display: block;
         font-size: 0.875rem;
@@ -214,14 +291,40 @@ const tocHeadings = headings.filter((h) => h.depth <= 3);
       .mobile-toc-link:hover {
         color: var(--accent);
       }
+
+      /* ─── Dark mode prose overrides ─────────────────────────────── */
+      html.dark .prose {
+        --tw-prose-body: #e4e4e7;
+        --tw-prose-headings: #f4f4f5;
+        --tw-prose-bold: #f4f4f5;
+        --tw-prose-quotes: #a1a1aa;
+        --tw-prose-quote-borders: #3f3f46;
+        --tw-prose-captions: #71717a;
+        --tw-prose-code: #f4f4f5;
+        --tw-prose-hr: #2e2e35;
+        --tw-prose-links: #f08fa6;
+      }
+      @media (prefers-color-scheme: dark) {
+        html:not(.light) .prose {
+          --tw-prose-body: #e4e4e7;
+          --tw-prose-headings: #f4f4f5;
+          --tw-prose-bold: #f4f4f5;
+          --tw-prose-quotes: #a1a1aa;
+          --tw-prose-quote-borders: #3f3f46;
+          --tw-prose-captions: #71717a;
+          --tw-prose-code: #f4f4f5;
+          --tw-prose-hr: #2e2e35;
+          --tw-prose-links: #f08fa6;
+        }
+      }
     </style>
   </head>
 
-  <body class="antialiased" style="color: #1c1c1c;">
+  <body class="antialiased" style="color: var(--text);">
     <!-- ─── Top bar ─────────────────────────────────────────────── -->
     <header
       class="ui-font sticky top-0 z-50"
-      style="border-bottom: 1px solid var(--border); background-color: rgba(240,238,233,0.94); backdrop-filter: blur(8px);"
+      style="position: sticky; border-bottom: 1px solid var(--border); background-color: var(--header-bg); backdrop-filter: blur(8px);"
     >
       <div class="max-w-5xl mx-auto px-4 sm:px-6 h-11 flex items-center gap-3">
         <!-- Hamburger — mobile only -->
@@ -230,12 +333,23 @@ const tocHeadings = headings.filter((h) => h.depth <= 3);
           class="lg:hidden shrink-0 flex flex-col justify-center gap-[5px] p-1 -ml-1"
           aria-label="Table of contents"
         >
-          <span class="block w-[18px] h-[2px]" style="background:#aaa3a0;"></span>
-          <span class="block w-[18px] h-[2px]" style="background:#aaa3a0;"></span>
-          <span class="block w-[18px] h-[2px]" style="background:#aaa3a0;"></span>
+          <span class="block w-[18px] h-[2px]" style="background: var(--text-muted);"></span>
+          <span class="block w-[18px] h-[2px]" style="background: var(--text-muted);"></span>
+          <span class="block w-[18px] h-[2px]" style="background: var(--text-muted);"></span>
         </button>
-        <span class="text-sm truncate" style="color: var(--text-muted);">{title}</span>
+        <span class="text-sm truncate" style="color: var(--text-muted); flex: 1;">{title}</span>
+        <!-- Dark mode toggle -->
+        <button
+          id="theme-toggle"
+          aria-label="Toggle dark mode"
+          style="shrink-0; padding: 4px; color: var(--text-muted); background: none; border: none; cursor: pointer; line-height: 1;"
+        >
+          <svg id="icon-moon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          <svg id="icon-sun" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        </button>
       </div>
+      <!-- Reading progress bar -->
+      <div id="reading-progress"></div>
     </header>
 
     <!-- ─── Mobile TOC drawer ──────────────────────────────────── -->
@@ -282,7 +396,7 @@ const tocHeadings = headings.filter((h) => h.depth <= 3);
                 <li class={h.depth === 3 ? 'pl-3' : ''}>
                   <a
                     href={`#${h.slug}`}
-                    class="toc-link block text-xs py-0.5 leading-snug"
+                    class="toc-link text-xs py-0.5 leading-snug"
                     data-slug={h.slug}
                   >
                     {h.text}
@@ -310,7 +424,46 @@ const tocHeadings = headings.filter((h) => h.depth <= 3);
     </div>
 
     <script>
-      // ─── Scroll-spy ─────────────────────────────────────────────
+      // ─── Dark mode ───────────────────────────────────────────────
+      const html = document.documentElement;
+      const moonIcon = document.getElementById('icon-moon')!;
+      const sunIcon = document.getElementById('icon-sun')!;
+
+      function applyTheme(dark: boolean) {
+        if (dark) {
+          html.classList.add('dark');
+          html.classList.remove('light');
+          moonIcon.style.display = 'none';
+          sunIcon.style.display = 'block';
+        } else {
+          html.classList.remove('dark');
+          html.classList.add('light');
+          moonIcon.style.display = 'block';
+          sunIcon.style.display = 'none';
+        }
+      }
+
+      // Initialise from localStorage, falling back to system preference
+      const saved = localStorage.getItem('theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      applyTheme(saved === 'dark' || (!saved && prefersDark));
+
+      document.getElementById('theme-toggle')!.addEventListener('click', () => {
+        const isDark = html.classList.contains('dark');
+        localStorage.setItem('theme', isDark ? 'light' : 'dark');
+        applyTheme(!isDark);
+      });
+
+      // ─── Reading progress bar ────────────────────────────────────
+      const progressBar = document.getElementById('reading-progress')!;
+      function updateProgress() {
+        const max = document.documentElement.scrollHeight - window.innerHeight;
+        progressBar.style.width = (max > 0 ? (window.scrollY / max) * 100 : 0) + '%';
+      }
+      window.addEventListener('scroll', updateProgress, { passive: true });
+      updateProgress();
+
+      // ─── Scroll-spy (TOC active state) ──────────────────────────
       const headings = document.querySelectorAll('article h2[id], article h3[id]');
       const tocLinks = document.querySelectorAll<HTMLAnchorElement>('#toc .toc-link');
 
@@ -327,7 +480,7 @@ const tocHeadings = headings.filter((h) => h.depth <= 3);
               }
             });
           },
-          { rootMargin: '-15% 0px -70% 0px' }
+          { rootMargin: '-10% 0px -75% 0px' }
         );
         headings.forEach((h) => observer.observe(h));
       }
@@ -351,11 +504,17 @@ const tocHeadings = headings.filter((h) => h.depth <= 3);
       let hideTimer: ReturnType<typeof setTimeout>;
 
       function getFootnoteText(href: string): string {
-        const id = href.replace(/^#/, '');
-        const li = document.getElementById(id);
+        const rawId = href.replace(/^#/, '');
+        // remark-gfm may use "user-content-fn-N" or just "fn-N"
+        const li =
+          document.getElementById(rawId) ||
+          document.getElementById('user-content-' + rawId) ||
+          document.querySelector<HTMLElement>(`li[id$="-${rawId.replace(/^.*fn-/, 'fn-')}"]`);
         if (!li) return '';
         const clone = li.cloneNode(true) as HTMLElement;
-        clone.querySelector('a[data-footnote-backref]')?.remove();
+        clone.querySelectorAll('a[data-footnote-backref], a[href*="fnref"]').forEach((el) =>
+          el.remove()
+        );
         return clone.textContent?.trim() ?? '';
       }
 
@@ -383,7 +542,12 @@ const tocHeadings = headings.filter((h) => h.depth <= 3);
 
       const isTouch = () => window.matchMedia('(hover: none)').matches;
 
-      document.querySelectorAll<HTMLAnchorElement>('a[data-footnote-ref]').forEach((ref) => {
+      // Match both data-footnote-ref and plain sup > a[href*="fn-"]
+      const fnRefs = document.querySelectorAll<HTMLElement>(
+        'a[data-footnote-ref], sup > a[href*="fn-"]'
+      );
+
+      fnRefs.forEach((ref) => {
         const href = ref.getAttribute('href') ?? '';
         const text = getFootnoteText(href);
         if (!text) return;
@@ -391,14 +555,14 @@ const tocHeadings = headings.filter((h) => h.depth <= 3);
         // Desktop hover
         ref.addEventListener('mouseenter', () => showTooltip(ref, text));
         ref.addEventListener('mouseleave', () => {
-          hideTimer = setTimeout(hideTooltip, 250);
+          hideTimer = setTimeout(hideTooltip, 300);
         });
 
-        // Touch: click toggles
+        // Touch: tap toggles
         ref.addEventListener('click', (e) => {
           if (!isTouch()) return;
+          e.preventDefault();
           if (fnTooltip.classList.contains('hidden')) {
-            e.preventDefault();
             showTooltip(ref, text);
           } else {
             hideTooltip();
@@ -407,7 +571,8 @@ const tocHeadings = headings.filter((h) => h.depth <= 3);
       });
 
       document.addEventListener('click', (e) => {
-        if (!(e.target as HTMLElement).closest('a[data-footnote-ref]')) {
+        const t = e.target as HTMLElement;
+        if (!t.closest('a[data-footnote-ref]') && !t.closest('sup > a[href*="fn-"]')) {
           hideTooltip();
         }
       });
