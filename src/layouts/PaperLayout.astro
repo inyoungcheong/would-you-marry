@@ -27,6 +27,19 @@ const tocHeadings = headings.filter((h) => h.depth <= 3);
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{title}</title>
     <script is:inline>
+      // Password gate
+      (function() {
+        if (sessionStorage.getItem('auth') !== '1') {
+          var pw = prompt('Password:');
+          if (pw !== 'marry2025') {
+            document.documentElement.innerHTML = '';
+            location.href = 'about:blank';
+          } else {
+            sessionStorage.setItem('auth', '1');
+          }
+        }
+      })();
+
       // Apply theme before paint to avoid flash
       (function() {
         var saved = localStorage.getItem('theme');
